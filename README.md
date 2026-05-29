@@ -1,5 +1,5 @@
 
-readme = """# 💛❤️ Nós — Cuidado e Conexão
+"""# 💛❤️ Nós — Cuidado e Conexão
 
 > Aplicação web desenvolvida para facilitar a comunicação entre **idosos** e seus **cuidadores**, promovendo segurança, autonomia e carinho no dia a dia.
 

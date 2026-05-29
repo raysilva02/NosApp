@@ -1,5 +1,5 @@
 
-"""# 💛❤️ Nós — Cuidado e Conexão
+# 💛❤️ Nós — Cuidado e Conexão
 
 > Aplicação web desenvolvida para facilitar a comunicação entre **idosos** e seus **cuidadores**, promovendo segurança, autonomia e carinho no dia a dia.
 
@@ -224,12 +224,6 @@ Desenvolvido com ❤️ por **Rayana Silva**
 [![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/seu-usuario)
 
 ---
-
-<div align="center">
-  <strong>❤️ Nós — Cuidado e Conexão</strong><br/>
-  <sub>Aproximando idosos e cuidadores com tecnologia e carinho</sub>
-</div>
-"""
 
 with open("README.md", "w", encoding="utf-8") as f:
     f.write(readme)

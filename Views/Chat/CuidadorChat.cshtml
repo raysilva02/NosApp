@@ -1,0 +1,51 @@
+@model Nos.ViewModels.ChatViewModel
+@{
+    ViewData["Title"] = "Chat";
+    ViewData["HideNavbar"] = true;
+}
+<div class="nos-chat-container">
+    <div class="nos-chat-header nos-chat-header-yellow"><a asp-controller="Home" asp-action="Index" class="btn btn-link p-0 me-3 text-dark"><i class="bi bi-arrow-left fs-5"></i></a><div class="nos-avatar-sm me-2" style="background:#FFCDD2;"><i class="bi bi-person-fill" style="color:#E53935;"></i></div><div><strong>@Model.OutroUsuarioNome</strong><div class="small" style="opacity:.7;">Paciente</div></div></div>
+    <div class="nos-chat-messages" id="chatMessages">
+        @foreach (var msg in Model.Mensagens)
+        {
+            var isMe = msg.RemetenteId == Model.UsuarioAtualId;
+            <div class="nos-msg-wrapper @(isMe?"nos-msg-right":"nos-msg-left")"><div class="nos-msg-bubble @(isMe?"nos-msg-me":"nos-msg-other")"><p class="mb-1">@msg.Conteudo</p><small class="nos-msg-time">@msg.DataHora.ToString("HH:mm")</small></div></div>
+        }
+    </div>
+    <div class="nos-chat-input-area"><div class="input-group"><input type="text" id="msgInput" class="form-control nos-chat-input" placeholder="Digite uma mensagem para o paciente..." maxlength="500" onkeypress="if(event.key==='Enter')sendMsg()" /><button class="btn nos-btn-send" onclick="sendMsg()"><i class="bi bi-send-fill"></i></button></div></div>
+</div>
+@section Scripts {
+    <script>
+        const relId = @Model.RelacionamentoId;
+        const myId = "@Model.UsuarioAtualId";
+        const conn = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .withAutomaticReconnect()
+            .build();
+        conn.on("ReceiveMessage", m => addMsg(m.remetenteId, m.conteudo, m.dataHora));
+        conn.start()
+            .then(() => { conn.invoke("JoinRoom", relId.toString()); scrollBot(); })
+            .catch(e => console.error(e));
+        function sendMsg() {
+            const i = document.getElementById("msgInput");
+            const v = i.value.trim();
+            if (!v) return;
+            conn.invoke("SendMessage", relId, v);
+            i.value = "";
+        }
+        function sendQ(m) { conn.invoke("SendMessage", relId, m); }
+        function addMsg(rid, txt, time) {
+            const isMe = rid === myId;
+            const c = document.getElementById("chatMessages");
+            const w = document.createElement("div");
+            w.className = `nos-msg-wrapper ${isMe ? "nos-msg-right" : "nos-msg-left"}`;
+            w.innerHTML = `<div class="nos-msg-bubble ${isMe ? "nos-msg-me" : "nos-msg-other"}"><p class="mb-1">${txt}</p><small class="nos-msg-time">${time}</small></div>`;
+            c.appendChild(w);
+            scrollBot();
+        }
+        function scrollBot() {
+            const c = document.getElementById("chatMessages");
+            c.scrollTop = c.scrollHeight;
+        }
+    </script>
+}

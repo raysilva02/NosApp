@@ -1,0 +1,64 @@
+@model Nos.ViewModels.ChatViewModel
+@{
+    ViewData["Title"] = "Chat";
+    ViewData["HideNavbar"] = true;
+}
+<div class="nos-chat-container">
+    <div class="nos-chat-header"><a asp-controller="Home" asp-action="Index" class="btn btn-link p-0 me-3 text-white"><i class="bi bi-arrow-left fs-5"></i></a><div class="nos-avatar-sm me-2"><i class="bi bi-person-badge-fill"></i></div><div><strong>@Model.OutroUsuarioNome</strong><div class="small opacity-75">Cuidador</div></div></div>
+    <div class="nos-chat-messages" id="chatMessages">
+        @foreach (var msg in Model.Mensagens)
+        {
+            var isMe = msg.RemetenteId == Model.UsuarioAtualId;
+            <div class="nos-msg-wrapper @(isMe?"nos-msg-right":"nos-msg-left")"><div class="nos-msg-bubble @(isMe?"nos-msg-me":"nos-msg-other")"><p class="mb-1">@msg.Conteudo</p><small class="nos-msg-time">@msg.DataHora.ToString("HH:mm")</small></div></div>
+        }
+    </div>
+    <div class="nos-quick-msgs">
+        <p class="nos-quick-msgs-title"><i class="bi bi-lightning-fill me-1"></i>Mensagens Rapidas</p>
+        <div class="nos-quick-btns-grid">
+            <button class="nos-quick-btn" onclick="sendQ('Preciso de ajuda!')"><i class="bi bi-exclamation-triangle-fill"></i> Preciso de ajuda!</button>
+            <button class="nos-quick-btn nos-qb-green" onclick="sendQ('Estou bem')"><i class="bi bi-emoji-smile-fill"></i> Estou bem</button>
+            <button class="nos-quick-btn nos-qb-blue" onclick="sendQ('Venha para casa')"><i class="bi bi-house-fill"></i> Venha para casa</button>
+            <button class="nos-quick-btn" onclick="sendQ('Estou com dor')"><i class="bi bi-bandaid-fill"></i> Estou com dor</button>
+            <button class="nos-quick-btn nos-qb-orange" onclick="sendQ('Preciso do remedio')"><i class="bi bi-capsule-pill"></i> Preciso do remedio</button>
+            <button class="nos-quick-btn nos-qb-purple" onclick="sendQ('Estou com fome')"><i class="bi bi-egg-fried"></i> Estou com fome</button>
+            <button class="nos-quick-btn nos-qb-teal" onclick="sendQ('Obrigado!')"><i class="bi bi-heart-fill"></i> Obrigado!</button>
+            <button class="nos-quick-btn nos-qb-yellow" onclick="sendQ('Estou com sono')"><i class="bi bi-moon-stars-fill"></i> Estou com sono</button>
+        </div>
+    </div>
+    <div class="nos-chat-input-area"><div class="input-group"><input type="text" id="msgInput" class="form-control nos-chat-input" placeholder="Digite uma mensagem..." maxlength="500" onkeypress="if(event.key==='Enter')sendMsg()" /><button class="btn nos-btn-send" onclick="sendMsg()"><i class="bi bi-send-fill"></i></button></div></div>
+</div>
+@section Scripts {
+    <script>
+        const relId = @Model.RelacionamentoId;
+        const myId = "@Model.UsuarioAtualId";
+        const conn = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .withAutomaticReconnect()
+            .build();
+        conn.on("ReceiveMessage", m => addMsg(m.remetenteId, m.conteudo, m.dataHora));
+        conn.start()
+            .then(() => { conn.invoke("JoinRoom", relId.toString()); scrollBot(); })
+            .catch(e => console.error(e));
+        function sendMsg() {
+            const i = document.getElementById("msgInput");
+            const v = i.value.trim();
+            if (!v) return;
+            conn.invoke("SendMessage", relId, v);
+            i.value = "";
+        }
+        function sendQ(m) { conn.invoke("SendMessage", relId, m); }
+        function addMsg(rid, txt, time) {
+            const isMe = rid === myId;
+            const c = document.getElementById("chatMessages");
+            const w = document.createElement("div");
+            w.className = `nos-msg-wrapper ${isMe ? "nos-msg-right" : "nos-msg-left"}`;
+            w.innerHTML = `<div class="nos-msg-bubble ${isMe ? "nos-msg-me" : "nos-msg-other"}"><p class="mb-1">${txt}</p><small class="nos-msg-time">${time}</small></div>`;
+            c.appendChild(w);
+            scrollBot();
+        }
+        function scrollBot() {
+            const c = document.getElementById("chatMessages");
+            c.scrollTop = c.scrollHeight;
+        }
+    </script>
+}

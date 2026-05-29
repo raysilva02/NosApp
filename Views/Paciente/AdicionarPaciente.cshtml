@@ -1,0 +1,10 @@
+@model Nos.ViewModels.AdicionarPacienteViewModel
+@{ViewData["Title"]="Adicionar Paciente";}
+<div class="row justify-content-center"><div class="col-12 col-md-6 col-lg-5"><div class="nos-form-card"><div class="nos-form-header"><i class="bi bi-person-plus-fill me-2"></i>Adicionar Paciente</div><div class="nos-form-body">
+<p class="nos-text-muted mb-4">Informe o numero de telefone do paciente para vincula-lo a sua conta.</p>
+<form asp-controller="Paciente" asp-action="AdicionarPaciente" method="post">
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small"></div>
+<div class="mb-4"><label asp-for="TelefonePaciente" class="nos-label"></label><div class="input-group"><span class="input-group-text nos-input-icon"><i class="bi bi-telephone-fill"></i></span><input asp-for="TelefonePaciente" class="form-control nos-input" placeholder="(00) 00000-0000"/></div><span asp-validation-for="TelefonePaciente" class="text-danger small"></span><div class="form-text nos-hint mt-1"><i class="bi bi-info-circle me-1"></i>O paciente deve ter cadastro no Nos como "Idoso".</div></div>
+<div class="d-flex gap-2"><button type="submit" class="btn nos-btn-primary flex-grow-1"><i class="bi bi-person-check me-2"></i>Vincular Paciente</button><a asp-controller="Paciente" asp-action="Index" class="btn nos-btn-outline-sm">Cancelar</a></div>
+</form></div></div></div></div>
+@section Scripts{<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation/1.19.5/jquery.validate.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/4.0.0/jquery.validate.unobtrusive.min.js"></script>}

@@ -1,0 +1,5 @@
+@model List<Nos.Models.Remedio>
+@{ViewData["Title"]="Meus Remedios";}
+<div class="d-flex justify-content-between align-items-center mb-4"><h2 class="nos-page-title"><i class="bi bi-capsule-pill me-2"></i>Meus Remedios</h2><a asp-controller="Home" asp-action="Index" class="btn nos-btn-outline-sm"><i class="bi bi-house me-1"></i>Voltar</a></div>
+@if(Model!=null&&Model.Any()){<div class="row g-3">@foreach(var rem in Model.OrderBy(r=>r.Horario)){<div class="col-12 col-md-6"><div class="nos-remedio-card"><div class="d-flex justify-content-between align-items-start mb-2"><h5 class="nos-remedio-nome"><i class="bi bi-capsule me-2"></i>@rem.Nome</h5><span class="nos-badge-horario"><i class="bi bi-clock me-1"></i>@rem.Horario</span></div><p class="nos-remedio-dose mb-1"><strong>Dose:</strong> @rem.Dose</p>@if(!string.IsNullOrEmpty(rem.Descricao)){<p class="nos-remedio-desc mb-0">@rem.Descricao</p>}</div></div>}</div>}
+else{<div class="nos-empty-state"><i class="bi bi-capsule display-3 mb-3"></i><h4>Nenhum remedio cadastrado</h4></div>}

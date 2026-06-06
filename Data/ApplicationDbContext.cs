@@ -9,6 +9,8 @@ namespace Nos.Data {
         public DbSet<RelacionamentoCuidadorIdoso> Relacionamentos { get; set; }
         public DbSet<Remedio> Remedios { get; set; }
         public DbSet<Mensagem> Mensagens { get; set; }
+        public DbSet<PushSubscricao> PushSubscricoes { get; set; }
+
         protected override void OnModelCreating(ModelBuilder b) {
             base.OnModelCreating(b);
             b.Entity<RelacionamentoCuidadorIdoso>().HasOne(r=>r.Cuidador).WithMany(c=>c.Relacionamentos).HasForeignKey(r=>r.CuidadorId).OnDelete(DeleteBehavior.Restrict);

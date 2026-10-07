@@ -1,15 +1,17 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Nos.Data;
+using Nos.Dtos;
 using Nos.Models;
-using Nos.ViewModels;
 
 namespace Nos.Controllers
 {
+    [ApiController]
+    [Route("api/chat")]
     [Authorize]
-    public class ChatController : Controller
+    public class ChatController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _um;
         private readonly ApplicationDbContext _ctx;
@@ -20,72 +22,40 @@ namespace Nos.Controllers
             _ctx = ctx;
         }
 
-
-        public async Task<IActionResult> IdosoChat(int relacionamentoId)
+        [HttpGet("{relacionamentoId:int}")]
+        public async Task<IActionResult> Obter(int relacionamentoId)
         {
             var user = await _um.GetUserAsync(User);
-
-            if (user == null || user.TipoUsuario != "Idoso")
-                return Forbid();
+            if (user == null) return Unauthorized();
 
             var rel = await _ctx.Relacionamentos
-                .Include(r => r.Cuidador)
-                    .ThenInclude(c => c!.ApplicationUser)
-                .Include(r => r.Idoso)
-                    .ThenInclude(i => i!.ApplicationUser)
+                .Include(r => r.Cuidador).ThenInclude(c => c!.ApplicationUser)
+                .Include(r => r.Idoso).ThenInclude(i => i!.ApplicationUser)
                 .Include(r => r.Mensagens)
-                .FirstOrDefaultAsync(r =>
-                    r.Id == relacionamentoId &&
-                    r.Idoso!.ApplicationUserId == user.Id);
+                .FirstOrDefaultAsync(r => r.Id == relacionamentoId);
+            if (rel == null) return NotFound();
 
-            if (rel == null)
-                return NotFound();
+            var isIdoso = user.TipoUsuario == "Idoso";
+            if (isIdoso && rel.Idoso!.ApplicationUserId != user.Id) return Forbid();
+            if (!isIdoso && rel.Cuidador!.ApplicationUserId != user.Id) return Forbid();
 
-            var viewModel = new ChatViewModel
-            {
-                RelacionamentoId = rel.Id,
-                OutroUsuarioNome = rel.Cuidador!.ApplicationUser!.NomeCompleto,
-                OutroUsuarioId = rel.Cuidador.ApplicationUserId,
-                UsuarioAtualId = user.Id,
-                Mensagens = rel.Mensagens.OrderBy(m => m.DataHora).ToList(),
-                IsIdoso = true
-            };
+            var cuidadorNome = rel.Cuidador!.ApplicationUser!.NomeCompleto;
+            var idosoNome = rel.Idoso!.ApplicationUser!.NomeCompleto;
 
-            return View(viewModel);
-        }
+            var mensagens = rel.Mensagens.OrderBy(m => m.DataHora).Select(m => new MensagemDto(
+                m.Id,
+                m.Conteudo,
+                m.DataHora.ToString("HH:mm"),
+                m.RemetenteId,
+                m.RemetenteId == rel.Cuidador.ApplicationUserId ? cuidadorNome : idosoNome)).ToList();
 
-
-        public async Task<IActionResult> CuidadorChat(int relacionamentoId)
-        {
-            var user = await _um.GetUserAsync(User);
-
-            if (user == null || user.TipoUsuario != "Cuidador")
-                return Forbid();
-
-            var rel = await _ctx.Relacionamentos
-                .Include(r => r.Cuidador)
-                    .ThenInclude(c => c!.ApplicationUser)
-                .Include(r => r.Idoso)
-                    .ThenInclude(i => i!.ApplicationUser)
-                .Include(r => r.Mensagens)
-                .FirstOrDefaultAsync(r =>
-                    r.Id == relacionamentoId &&
-                    r.Cuidador!.ApplicationUserId == user.Id);
-
-            if (rel == null)
-                return NotFound();
-
-            var viewModel = new ChatViewModel
-            {
-                RelacionamentoId = rel.Id,
-                OutroUsuarioNome = rel.Idoso!.ApplicationUser!.NomeCompleto,
-                OutroUsuarioId = rel.Idoso.ApplicationUserId,
-                UsuarioAtualId = user.Id,
-                Mensagens = rel.Mensagens.OrderBy(m => m.DataHora).ToList(),
-                IsIdoso = false
-            };
-
-            return View(viewModel);
+            return Ok(new ChatDto(
+                rel.Id,
+                isIdoso ? cuidadorNome : idosoNome,
+                isIdoso ? rel.Cuidador.ApplicationUserId : rel.Idoso.ApplicationUserId,
+                user.Id,
+                mensagens,
+                isIdoso));
         }
     }
 }

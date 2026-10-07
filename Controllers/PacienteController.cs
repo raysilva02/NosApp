@@ -2,36 +2,83 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Nos.Data; using Nos.Models; using Nos.ViewModels;
-namespace Nos.Controllers {
-    [Authorize] public class PacienteController : Controller {
-        private readonly UserManager<ApplicationUser> _um; private readonly ApplicationDbContext _ctx;
-        public PacienteController(UserManager<ApplicationUser> um, ApplicationDbContext ctx) { _um=um; _ctx=ctx; }
-        public async Task<IActionResult> Index() {
-            var user = await _um.GetUserAsync(User);
-            if(user==null||user.TipoUsuario!="Cuidador") return Forbid();
-            var c = await _ctx.Cuidadores.Include(x=>x.Relacionamentos).ThenInclude(r=>r.Idoso).ThenInclude(i=>i!.ApplicationUser).Include(x=>x.Relacionamentos).ThenInclude(r=>r.Idoso).ThenInclude(i=>i!.Remedios).FirstOrDefaultAsync(x=>x.ApplicationUserId==user.Id);
-            ViewBag.NomeUsuario=user.NomeCompleto; return View(c); }
-        
-        [HttpGet] 
-        public IActionResult AdicionarPaciente() => View(new AdicionarPacienteViewModel());
-        
-        
-        [HttpPost,ValidateAntiForgeryToken]
-        public async Task<IActionResult> AdicionarPaciente(AdicionarPacienteViewModel m) 
+using Nos.Data;
+using Nos.Dtos;
+using Nos.Models;
+
+namespace Nos.Controllers
+{
+    [ApiController]
+    [Route("api/pacientes")]
+    [Authorize]
+    [AutoValidateAntiforgeryToken]
+    public class PacienteController : ControllerBase
+    {
+        private readonly UserManager<ApplicationUser> _um;
+        private readonly ApplicationDbContext _ctx;
+
+        public PacienteController(UserManager<ApplicationUser> um, ApplicationDbContext ctx)
         {
-            if(!ModelState.IsValid) return View(m);
+            _um = um;
+            _ctx = ctx;
+        }
+
+        private static string NormalizarTelefone(string t) =>
+            t.Trim().Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "");
+
+        [HttpGet]
+        public async Task<IActionResult> Listar()
+        {
             var user = await _um.GetUserAsync(User);
-            if(user==null||user.TipoUsuario!="Cuidador") return Forbid();
-            var tel = m.TelefonePaciente.Trim().Replace(" ","").Replace("-","").Replace("(","").Replace(")","");
-            var pu = await _um.FindByNameAsync(tel);
-            if(pu==null||pu.TipoUsuario!="Idoso") { ModelState.AddModelError("","Paciente nao encontrado."); return View(m); }
-            var cu = await _ctx.Cuidadores.FirstOrDefaultAsync(c=>c.ApplicationUserId==user.Id);
-            var iu = await _ctx.Idosos.FirstOrDefaultAsync(i=>i.ApplicationUserId==pu.Id);
-            if(cu==null||iu==null) { ModelState.AddModelError("","Erro ao encontrar perfis."); return View(m); }
-            if(await _ctx.Relacionamentos.AnyAsync(r=>r.CuidadorId==cu.Id&&r.IdosoId==iu.Id)) { ModelState.AddModelError("","Paciente ja vinculado."); return View(m); }
-            _ctx.Relacionamentos.Add(new RelacionamentoCuidadorIdoso{CuidadorId=cu.Id,IdosoId=iu.Id,DataInicio=DateTime.Now});
-            await _ctx.SaveChangesAsync(); TempData["Sucesso"]=$"{pu.NomeCompleto} adicionado!"; return RedirectToAction("Index"); 
+            if (user == null || user.TipoUsuario != "Cuidador") return Forbid();
+
+            var cuidador = await _ctx.Cuidadores
+                .Include(c => c.Relacionamentos).ThenInclude(r => r.Idoso).ThenInclude(i => i!.ApplicationUser)
+                .Include(c => c.Relacionamentos).ThenInclude(r => r.Idoso).ThenInclude(i => i!.Remedios)
+                .FirstOrDefaultAsync(c => c.ApplicationUserId == user.Id);
+            if (cuidador == null) return NotFound();
+
+            var pacientes = cuidador.Relacionamentos
+                .Select(r => new PacienteDto(
+                    r.Id,
+                    r.Idoso!.Id,
+                    r.Idoso.ApplicationUser!.NomeCompleto,
+                    r.Idoso.ApplicationUser.PhoneNumber ?? "",
+                    r.Idoso.Remedios.Select(x => new RemedioDto(x.Id, x.Nome, x.Horario, x.Dose, x.Descricao)).ToList()))
+                .ToList();
+
+            return Ok(pacientes);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Adicionar([FromBody] AdicionarPacienteDto dto)
+        {
+            var user = await _um.GetUserAsync(User);
+            if (user == null || user.TipoUsuario != "Cuidador") return Forbid();
+
+            var tel = NormalizarTelefone(dto.TelefonePaciente);
+            var pacienteUser = await _um.FindByNameAsync(tel);
+            if (pacienteUser == null || pacienteUser.TipoUsuario != "Idoso")
+                return BadRequest(new { erro = "Paciente nao encontrado." });
+
+            var cuidador = await _ctx.Cuidadores.FirstOrDefaultAsync(c => c.ApplicationUserId == user.Id);
+            var idoso = await _ctx.Idosos.FirstOrDefaultAsync(i => i.ApplicationUserId == pacienteUser.Id);
+            if (cuidador == null || idoso == null)
+                return BadRequest(new { erro = "Erro ao encontrar perfis." });
+
+            if (await _ctx.Relacionamentos.AnyAsync(r => r.CuidadorId == cuidador.Id && r.IdosoId == idoso.Id))
+                return BadRequest(new { erro = "Paciente ja vinculado." });
+
+            var rel = new RelacionamentoCuidadorIdoso
+            {
+                CuidadorId = cuidador.Id,
+                IdosoId = idoso.Id,
+                DataInicio = DateTime.Now
+            };
+            _ctx.Relacionamentos.Add(rel);
+            await _ctx.SaveChangesAsync();
+
+            return Ok(new PacienteDto(rel.Id, idoso.Id, pacienteUser.NomeCompleto, pacienteUser.PhoneNumber ?? "", new List<RemedioDto>()));
         }
     }
 }

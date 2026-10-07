@@ -1,5 +1,8 @@
-﻿const CACHE_NAME = "nos-cache-v2";
+const CACHE_NAME = "nos-cache-v3";
 const urlsToCache = [
+    "/",
+    "/index.html",
+    "/app.js",
     "/css/site.css",
     "/manifest.json",
     "/icons/icon-192.png",
@@ -15,13 +18,34 @@ self.addEventListener("install", event => {
 
 self.addEventListener("fetch", event => {
     if (event.request.method !== "GET") return;
-    if (event.request.mode === "navigate") return;
     if (event.request.url.startsWith("chrome-extension")) return;
     if (!event.request.url.startsWith(self.location.origin)) return;
 
+    // Navegação (app shell): tenta a rede e cai para o index.html em cache (offline).
+    if (event.request.mode === "navigate") {
+        event.respondWith(
+            fetch(event.request)
+                .then(res => {
+                    const copy = res.clone();
+                    caches.open(CACHE_NAME).then(c => c.put("/index.html", copy));
+                    return res;
+                })
+                .catch(() => caches.match(event.request).then(r => r || caches.match("/index.html")))
+        );
+        return;
+    }
+
+    // Assets: cache-first, populando o cache quando busca na rede.
     event.respondWith(
         caches.match(event.request)
-            .then(response => response || fetch(event.request))
+            .then(cached => {
+                if (cached) return cached;
+                return fetch(event.request).then(res => {
+                    const copy = res.clone();
+                    caches.open(CACHE_NAME).then(c => c.put(event.request, copy));
+                    return res;
+                });
+            })
             .catch(() => { })
     );
 });

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -7,8 +8,10 @@ using Nos.Models;
 
 namespace Nos.Controllers
 {
+    [ApiController]
+    [Route("api/push")]
     [Authorize]
-    public class PushController : Controller
+    public class PushController : ControllerBase
     {
         private readonly ApplicationDbContext _ctx;
         private readonly UserManager<ApplicationUser> _um;
@@ -21,14 +24,21 @@ namespace Nos.Controllers
             _config = config;
         }
 
-        [HttpPost]
+        [HttpGet("publickey")]
+        public IActionResult PublicKey()
+        {
+            return Ok(new { publicKey = _config["Vapid:PublicKey"] });
+        }
+
+        [HttpPost("subscribe")]
+        [AutoValidateAntiforgeryToken]
         public async Task<IActionResult> Subscribe([FromBody] PushSubscricaoDto dto)
         {
             var user = await _um.GetUserAsync(User);
             if (user == null) return Unauthorized();
 
-            var antiga = _ctx.PushSubscricoes
-                .FirstOrDefault(s => s.UserId == user.Id && s.Endpoint == dto.Endpoint);
+            var antiga = await _ctx.PushSubscricoes
+                .FirstOrDefaultAsync(s => s.UserId == user.Id && s.Endpoint == dto.Endpoint);
             if (antiga != null) _ctx.PushSubscricoes.Remove(antiga);
 
             _ctx.PushSubscricoes.Add(new PushSubscricao
@@ -42,17 +52,12 @@ namespace Nos.Controllers
             await _ctx.SaveChangesAsync();
             return Ok();
         }
-
-        [HttpGet]
-        public IActionResult PublicKey()
-        {
-            return Ok(new { publicKey = _config["Vapid:PublicKey"] });
-        }
     }
 
     public class PushSubscricaoDto
     {
         public string Endpoint { get; set; } = "";
+        [JsonPropertyName("p256dh")]
         public string P256DH { get; set; } = "";
         public string Auth { get; set; } = "";
     }

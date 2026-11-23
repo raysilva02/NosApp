@@ -7,6 +7,7 @@ import { useVoice } from '../voice/voiceContext';
 import type { DashboardIdoso, DashboardCuidador } from '../api/types';
 import { colors } from '../theme/colors';
 import { BigButton, Card, EmptyState, ErrorBox, Screen, VoiceButton } from '../components/ui';
+import { SosButton } from '../components/SosButton';
 
 export default function Home() {
   const { me } = useAuth();
@@ -63,6 +64,8 @@ function DashboardIdosoView({ data }: { data: DashboardIdoso }) {
         <Text style={styles.heroTitle}>Olá, {data.me.nomeCompleto} 💛</Text>
         <Text style={styles.heroText}>Aqui você vê seus cuidadores e seus remédios.</Text>
       </View>
+
+      <SosButton />
 
       <Text style={styles.sectionTitle}>👩‍⚕️ Meus cuidadores</Text>
       {data.cuidadores.length === 0 && <EmptyState emoji="👩‍⚕️" text="Nenhum cuidador vinculado ainda." />}

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { api } from '../api/client';
 import type { Paciente } from '../api/types';
 import { getCached } from '../offline/data';
+import { useVoice } from '../voice/voiceContext';
 import { colors } from '../theme/colors';
 import { BigButton, Card, EmptyState, ErrorBox, Field, Screen } from '../components/ui';
 
@@ -12,11 +13,21 @@ export default function Pacientes() {
   const [pacientes, setPacientes] = useState<Paciente[] | null>(null);
   const [tel, setTel] = useState('');
   const [erro, setErro] = useState('');
+  const { registrar } = useVoice();
 
   const carregar = () =>
     getCached<Paciente[]>('/api/pacientes', 'pacientes')
       .then((r) => setPacientes(r.data))
       .catch((e) => setErro((e as Error).message));
+
+  useEffect(() => {
+    if (!pacientes) return;
+    registrar({
+      descricaoTela: pacientes.length
+        ? `Tela de pacientes. Você tem ${pacientes.length} paciente.`
+        : 'Tela de pacientes. Nenhum paciente vinculado.',
+    });
+  }, [pacientes, registrar]);
 
   useEffect(() => {
     carregar();

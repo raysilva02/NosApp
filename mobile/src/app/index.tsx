@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../auth/AuthContext';
 import { getCached } from '../offline/data';
+import { useVoice } from '../voice/voiceContext';
 import type { DashboardIdoso, DashboardCuidador } from '../api/types';
 import { colors } from '../theme/colors';
 import { BigButton, Card, EmptyState, ErrorBox, Screen, VoiceButton } from '../components/ui';
@@ -44,6 +45,18 @@ export default function Home() {
 
 function DashboardIdosoView({ data }: { data: DashboardIdoso }) {
   const router = useRouter();
+  const { registrar } = useVoice();
+
+  useEffect(() => {
+    registrar({
+      descricaoTela: `Tela inicial. Você tem ${data.cuidadores.length} cuidador e ${data.remedios.length} remédios cadastrados.`,
+      telefoneCuidador: data.cuidadores[0]?.telefone ?? null,
+      remediosHoje: data.remedios.length
+        ? `Seus remédios: ${data.remedios.map((r) => `${r.nome}, dose ${r.dose}, às ${r.horario}`).join('. ')}.`
+        : '',
+    });
+  }, [data, registrar]);
+
   return (
     <Screen>
       <View style={styles.hero}>
@@ -82,6 +95,16 @@ function DashboardIdosoView({ data }: { data: DashboardIdoso }) {
 
 function DashboardCuidadorView({ data }: { data: DashboardCuidador }) {
   const router = useRouter();
+  const { registrar } = useVoice();
+
+  useEffect(() => {
+    registrar({
+      descricaoTela: `Tela inicial. Você cuida de ${data.pacientes.length} paciente.`,
+      telefoneCuidador: null,
+      remediosHoje: '',
+    });
+  }, [data, registrar]);
+
   return (
     <Screen>
       <View style={[styles.hero, styles.heroCuidador]}>

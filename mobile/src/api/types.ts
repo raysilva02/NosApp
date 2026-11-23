@@ -24,6 +24,7 @@ export interface Cuidador {
   cuidadorId: number;
   nomeCompleto: string;
   userId: string;
+  telefone: string | null;
 }
 
 export interface Paciente {

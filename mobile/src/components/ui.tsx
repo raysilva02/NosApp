@@ -101,7 +101,7 @@ export function EmptyState({ emoji, text }: { emoji: string; text: string }) {
 
 // ---------- Tela padrão (cabeçalho + scroll) ----------
 export function Screen({ children }: { children: ReactNode }) {
-  const { me, logout, online } = useAuth();
+  const { me, logout } = useAuth();
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
@@ -114,11 +114,6 @@ export function Screen({ children }: { children: ReactNode }) {
           <Text style={styles.logout}>Sair</Text>
         </Pressable>
       </View>
-      {!online && (
-        <View style={styles.offlineBar}>
-          <Text style={styles.offlineText}>⚠️ Sem internet — mostrando dados salvos</Text>
-        </View>
-      )}
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         {children}
       </ScrollView>
@@ -144,12 +139,6 @@ const styles = StyleSheet.create({
   brand: { color: colors.white, fontSize: 24, fontWeight: '800' },
   user: { color: colors.white, flex: 1, fontSize: 15, opacity: 0.95 },
   logout: { color: colors.white, fontSize: 16, fontWeight: '700' },
-  offlineBar: {
-    backgroundColor: '#F6C244',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-  },
-  offlineText: { color: colors.primaryDark, fontSize: 14, fontWeight: '700', textAlign: 'center' },
   scroll: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
 

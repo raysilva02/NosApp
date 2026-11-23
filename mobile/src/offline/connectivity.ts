@@ -1,8 +1,13 @@
 import * as Network from 'expo-network';
 
-// Estado global de conectividade, alimentado pelo listener do expo-network e
-// também pela observação dos resultados do wrapper `api` (sucesso/erro de rede).
-// "online" = internet alcançável; usamos `isInternetReachable` quando disponível.
+// Estado global de conectividade.
+//
+// Regra importante: NÃO usamos `isInternetReachable` do expo-network. Ele é
+// pouco confiável (retorna false em VPN/captive portal mesmo com internet).
+// Em vez disso:
+//   - `isConnected === false`  => sem rede física (offline definitivo).
+//   - resultado de `api()`      => decide se o backend está alcançável
+//     (sucesso => online; erro de rede => offline). É a fonte da verdade.
 let online = true;
 let listeners: ((online: boolean) => void)[] = [];
 
@@ -26,10 +31,15 @@ export function onConnectivityChange(fn: (online: boolean) => void): () => void 
 }
 
 export function initConnectivity() {
-  Network.getNetworkStateAsync().then((s) => {
-    setOnline(s.isConnected !== false && s.isInternetReachable !== false);
-  });
-  Network.addNetworkStateListener((s) => {
-    setOnline(s.isConnected !== false && s.isInternetReachable !== false);
-  });
+  const aplicar = (s: Network.NetworkState) => {
+    if (s.isConnected === false) {
+      setOnline(false); // sem rede física
+    } else if (s.isConnected === true) {
+      setOnline(true); // voltou a ter rede; o api() confirma/corrige
+    }
+    // isConnected indefinido: não decide nada — deixa o api() resolver.
+  };
+
+  Network.getNetworkStateAsync().then(aplicar).catch(() => {});
+  Network.addNetworkStateListener(aplicar);
 }

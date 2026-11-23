@@ -26,6 +26,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { isOnline } from '../../offline/connectivity';
 import { enviarAudio, localAudioUri } from '../../offline/audio';
 import { enfileirarMensagem, filaPorRel, type FilaMensagem } from '../../offline/store';
+import { useVoice } from '../../voice/voiceContext';
 import type { Chat as ChatType, Mensagem } from '../../api/types';
 import { colors } from '../../theme/colors';
 
@@ -45,6 +46,7 @@ export default function Chat() {
   const relIdNum = Number(relId);
   const router = useRouter();
   const { me } = useAuth();
+  const { registrar } = useVoice();
 
   const [chat, setChat] = useState<ChatType | null>(null);
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
@@ -76,6 +78,18 @@ export default function Chat() {
       /* ignora falhas pontuais de polling */
     }
   };
+
+  // Registra a descrição da tela para o comando "lê pra mim".
+  useEffect(() => {
+    if (!chat) return;
+    const ultima = mensagens[mensagens.length - 1];
+    const resumo = ultima
+      ? `Última mensagem: ${ultima.conteudo || 'mensagem de voz'}.`
+      : 'Nenhuma mensagem ainda.';
+    registrar({
+      descricaoTela: `Conversa com ${chat.outroUsuarioNome}. ${resumo}`,
+    });
+  }, [chat, mensagens, registrar]);
 
   const carregarPendentes = async () => {
     setPendentes(await filaPorRel(relIdNum));

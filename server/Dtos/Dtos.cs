@@ -9,7 +9,7 @@ public record UserDto(string Id, string NomeCompleto, string TipoUsuario);
 
 // Domínio
 public record RemedioDto(int Id, string Nome, string Horario, string Dose, string? Descricao);
-public record CuidadorDto(int RelacionamentoId, int CuidadorId, string NomeCompleto, string UserId);
+public record CuidadorDto(int RelacionamentoId, int CuidadorId, string NomeCompleto, string UserId, string? Telefone);
 public record PacienteDto(int RelacionamentoId, int IdosoId, string NomeCompleto, string Telefone, List<RemedioDto> Remedios);
 public record MensagemDto(int Id, string Conteudo, string? AudioUrl, string DataHora, string RemetenteId, string RemetenteNome);
 public record ChatDto(int RelacionamentoId, string OutroUsuarioNome, string OutroUsuarioId, string UsuarioAtualId, List<MensagemDto> Mensagens, bool IsIdoso);

@@ -2,18 +2,32 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import type { Remedio } from '../api/types';
 import { getCached } from '../offline/data';
+import { useVoice } from '../voice/voiceContext';
 import { colors } from '../theme/colors';
 import { Card, EmptyState, ErrorBox, Screen, VoiceButton } from '../components/ui';
 
 export default function Remedios() {
   const [remedios, setRemedios] = useState<Remedio[] | null>(null);
   const [erro, setErro] = useState('');
+  const { registrar } = useVoice();
 
   useEffect(() => {
     getCached<Remedio[]>('/api/remedios', 'remedios')
       .then((r) => setRemedios(r.data))
       .catch((e) => setErro((e as Error).message));
   }, []);
+
+  useEffect(() => {
+    if (!remedios) return;
+    registrar({
+      descricaoTela: remedios.length
+        ? `Tela de remédios. Você tem ${remedios.length} remédio cadastrado.`
+        : 'Tela de remédios. Nenhum remédio cadastrado.',
+      remediosHoje: remedios.length
+        ? `Seus remédios: ${remedios.map((r) => `${r.nome}, dose ${r.dose}, às ${r.horario}`).join('. ')}.`
+        : '',
+    });
+  }, [remedios, registrar]);
 
   return (
     <Screen>

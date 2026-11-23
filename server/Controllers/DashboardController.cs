@@ -37,7 +37,7 @@ namespace Nos.Controllers
                 if (idoso == null) return NotFound();
 
                 var cuidadores = idoso.Relacionamentos
-                    .Select(r => new CuidadorDto(r.Id, r.Cuidador!.Id, r.Cuidador.ApplicationUser!.NomeCompleto, r.Cuidador.ApplicationUserId))
+                    .Select(r => new CuidadorDto(r.Id, r.Cuidador!.Id, r.Cuidador.ApplicationUser!.NomeCompleto, r.Cuidador.ApplicationUserId, r.Cuidador.ApplicationUser.PhoneNumber))
                     .ToList();
                 var remedios = idoso.Remedios
                     .Select(r => new RemedioDto(r.Id, r.Nome, r.Horario, r.Dose, r.Descricao))

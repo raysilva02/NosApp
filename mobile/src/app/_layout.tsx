@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import { AuthProvider, useAuth } from '../auth/AuthContext';
+import { VoiceProvider } from '../voice/voiceContext';
 import { colors } from '../theme/colors';
 
 function RootNavigator() {
@@ -34,8 +35,10 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <StatusBar style="dark" />
-      <RootNavigator />
+      <VoiceProvider>
+        <StatusBar style="dark" />
+        <RootNavigator />
+      </VoiceProvider>
     </AuthProvider>
   );
 }

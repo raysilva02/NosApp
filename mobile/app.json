@@ -18,6 +18,7 @@
     },
     "android": {
       "package": "com.raynasilva.nos",
+      "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#C62828",

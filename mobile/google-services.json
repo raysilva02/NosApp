@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "565670735226",
+    "project_id": "nosapp-d32b9",
+    "storage_bucket": "nosapp-d32b9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:565670735226:android:81df844775712a9aaf7ac3",
+        "android_client_info": {
+          "package_name": "com.raynasilva.nos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHgtKX5ybEXIApnmCnSSTrpEqU9aODgHE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

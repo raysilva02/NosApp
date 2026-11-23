@@ -75,4 +75,40 @@ public class ChatService
         await _ctx.SaveChangesAsync();
         return msg;
     }
+
+    /// <summary>
+    /// Envia uma mensagem de socorro do idoso para TODOS os seus cuidadores.
+    /// Persiste uma mensagem em cada relacionamento e retorna os destinatários
+    /// (para disparar push). Retorna lista vazia se não houver cuidador.
+    /// </summary>
+    public async Task<List<(string UserId, string Nome)>> EnviarSosAsync(ApplicationUser idoso, string conteudo)
+    {
+        var rels = await _ctx.Relacionamentos
+            .Where(r => r.Idoso!.ApplicationUserId == idoso.Id)
+            .Select(r => new
+            {
+                RelId = r.Id,
+                CuidadorUserId = r.Cuidador!.ApplicationUserId,
+                CuidadorNome = r.Cuidador!.ApplicationUser!.NomeCompleto
+            })
+            .ToListAsync();
+
+        if (rels.Count == 0) return new List<(string, string)>();
+
+        var agora = DateTime.Now;
+        foreach (var rel in rels)
+        {
+            _ctx.Mensagens.Add(new Mensagem
+            {
+                Conteudo = conteudo,
+                AudioUrl = null,
+                DataHora = agora,
+                RemetenteId = idoso.Id,
+                RelacionamentoId = rel.RelId
+            });
+        }
+        await _ctx.SaveChangesAsync();
+
+        return rels.Select(r => (r.CuidadorUserId, r.CuidadorNome)).ToList();
+    }
 }

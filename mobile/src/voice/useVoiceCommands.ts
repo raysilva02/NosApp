@@ -3,6 +3,7 @@ import { Linking } from 'react-native';
 import * as Speech from 'expo-speech';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../auth/AuthContext';
+import { api } from '../api/client';
 import { useVoice } from './voiceContext';
 
 const dizer = (texto: string) => Speech.speak(texto, { language: 'pt-BR', rate: 0.95 });
@@ -10,6 +11,7 @@ const dizer = (texto: string) => Speech.speak(texto, { language: 'pt-BR', rate: 
 /**
  * Processa um comando de voz (texto já transcrito) e executa a ação.
  * Comandos suportados:
+ *   - "socorro" / "estou passando mal" => envia SOS para todos os cuidadores
  *   - "lê pra mim" / "ler tela"      => lê a descrição da tela atual
  *   - "ligar" / "telefonar"          => abre o discador com o telefone do cuidador
  *   - "remédios de hoje" / "o que tomar" => lê os remédios cadastrados
@@ -24,7 +26,23 @@ export function useVoiceCommands() {
     (texto: string) => {
       const t = texto.toLowerCase();
 
-      // 2. Ler a tela
+      // 0. Socorro: envia para todos os cuidadores do idoso.
+      if (/socorro|passando mal|emerg[êe]ncia|preciso de ajuda|me ajuda/.test(t)) {
+        if (me?.tipoUsuario !== 'Idoso') {
+          dizer('Este comando é para idosos.');
+          return;
+        }
+        dizer('Enviando socorro para seus cuidadores.');
+        api('/api/chat/sos', {
+          method: 'POST',
+          body: { conteudo: 'Socorro! Estou passando mal e preciso de ajuda.' },
+        })
+          .then(() => dizer('Socorro enviado.'))
+          .catch(() => dizer('Não consegui enviar o socorro. Verifique sua internet.'));
+        return;
+      }
+
+      // 1. Ler a tela
       if (/l[eê][^ ]* (pra|para)? ?mim|ler (a )?tela|leia/.test(t)) {
         if (descricaoTela) {
           dizer(descricaoTela);
@@ -34,7 +52,7 @@ export function useVoiceCommands() {
         return;
       }
 
-      // 3. Ligar para o cuidador (só idoso com telefone conhecido)
+      // 2. Ligar para o cuidador (só idoso com telefone conhecido)
       if (/ligar|telefonar|chamar/.test(t)) {
         if (telefoneCuidador) {
           dizer('Abrindo o discador para ligar.');

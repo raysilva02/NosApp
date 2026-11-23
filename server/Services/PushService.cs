@@ -35,6 +35,16 @@ public class PushService
                 : rel.Cuidador?.ApplicationUser?.Id;
             if (destinatarioId == null) return;
 
+            await EnviarPorUsuarioAsync(destinatarioId, remetenteNome, conteudo);
+        }
+        catch { /* push não deve derrubar o envio da mensagem */ }
+    }
+
+    /// <summary>Envia Web Push (VAPID) diretamente para um usuário (destinatárioId).</summary>
+    public async Task EnviarPorUsuarioAsync(string destinatarioId, string remetenteNome, string conteudo)
+    {
+        try
+        {
             var subscriptions = await _ctx.PushSubscricoes
                 .Where(s => s.UserId == destinatarioId)
                 .ToListAsync();

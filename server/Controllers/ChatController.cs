@@ -56,5 +56,32 @@ namespace Nos.Controllers
 
             return Ok(new MensagemDto(msg.Id, msg.Conteudo, msg.AudioUrl, msg.DataHora.ToString("HH:mm"), msg.RemetenteId, user.NomeCompleto));
         }
+
+        /// <summary>
+        /// SOS do idoso: envia uma mensagem de socorro para todos os cuidadores
+        /// vinculados, de uma vez, com push para cada um.
+        /// </summary>
+        [HttpPost("sos")]
+        public async Task<IActionResult> Sos([FromBody] EnviarMensagemDto dto)
+        {
+            var user = await _um.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+            if (user.TipoUsuario != "Idoso") return Forbid();
+
+            if (string.IsNullOrWhiteSpace(dto.Conteudo))
+                return BadRequest(new { erro = "Envie uma mensagem de socorro." });
+
+            var destinatarios = await _chat.EnviarSosAsync(user, dto.Conteudo);
+            if (destinatarios.Count == 0)
+                return BadRequest(new { erro = "Você não tem cuidadores vinculados." });
+
+            foreach (var (userId, nome) in destinatarios)
+            {
+                await _expoPush.EnviarAsync(userId, user.NomeCompleto, dto.Conteudo);
+                await _push.EnviarPorUsuarioAsync(userId, user.NomeCompleto, dto.Conteudo);
+            }
+
+            return Ok(new { enviados = destinatarios.Count });
+        }
     }
 }

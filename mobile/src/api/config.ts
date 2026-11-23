@@ -9,4 +9,4 @@ const envUrl = (
   globalThis as { process?: { env?: { EXPO_PUBLIC_API_URL?: string } } }
 )?.process?.env?.EXPO_PUBLIC_API_URL;
 
-export const API_URL = envUrl ?? 'http://192.168.0.7:5076';
+export const API_URL = envUrl ?? 'http://192.168.0.6:5076';

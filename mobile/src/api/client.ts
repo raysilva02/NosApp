@@ -38,7 +38,15 @@ export async function api<T = unknown>(
 
   let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}`, { method, headers, body });
+    // Timeout de 10s: evita que o app "trave carregando" quando o servidor
+    // não responde (ex.: IP errado). O RN não tem timeout padrão no fetch.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    try {
+      res = await fetch(`${API_URL}${path}`, { method, headers, body, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
   } catch {
     setOnline(false);
     const err = new Error('Sem conexão com o servidor. Verifique sua internet.');

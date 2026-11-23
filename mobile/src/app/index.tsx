@@ -55,6 +55,7 @@ function DashboardIdosoView({ data }: { data: DashboardIdoso }) {
       remediosHoje: data.remedios.length
         ? `Seus remédios: ${data.remedios.map((r) => `${r.nome}, dose ${r.dose}, às ${r.horario}`).join('. ')}.`
         : '',
+      contatos: data.cuidadores.map((c) => ({ nome: c.nomeCompleto, relId: c.relacionamentoId })),
     });
   }, [data, registrar]);
 
@@ -105,6 +106,7 @@ function DashboardCuidadorView({ data }: { data: DashboardCuidador }) {
       descricaoTela: `Tela inicial. Você cuida de ${data.pacientes.length} paciente.`,
       telefoneCuidador: null,
       remediosHoje: '',
+      contatos: data.pacientes.map((p) => ({ nome: p.nomeCompleto, relId: p.relacionamentoId })),
     });
   }, [data, registrar]);
 

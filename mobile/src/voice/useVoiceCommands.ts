@@ -4,30 +4,33 @@ import * as Speech from 'expo-speech';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../auth/AuthContext';
 import { api } from '../api/client';
-import { useVoice } from './voiceContext';
+import { useVoice, type Contato } from './voiceContext';
 
 const dizer = (texto: string) => Speech.speak(texto, { language: 'pt-BR', rate: 0.95 });
 
+// Normaliza o texto: minúsculas, sem acentos (á->a), sem pontuação.
+const normalizar = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
 /**
  * Processa um comando de voz (texto já transcrito) e executa a ação.
- * Comandos suportados:
- *   - "socorro" / "estou passando mal" => envia SOS para todos os cuidadores
- *   - "lê pra mim" / "ler tela"      => lê a descrição da tela atual
- *   - "ligar" / "telefonar"          => abre o discador com o telefone do cuidador
- *   - "remédios de hoje" / "o que tomar" => lê os remédios cadastrados
- *   - navegação (remédio, início, sair, paciente)
+ * O reconhecimento por palavra-chave tolera muitas variações de frase.
  */
 export function useVoiceCommands() {
   const router = useRouter();
   const { me, logout } = useAuth();
-  const { descricaoTela, telefoneCuidador, remediosHoje } = useVoice();
+  const { descricaoTela, telefoneCuidador, remediosHoje, contatos } = useVoice();
 
   return useCallback(
-    (texto: string) => {
-      const t = texto.toLowerCase();
+    (textoBruto: string) => {
+      const t = normalizar(textoBruto);
 
       // 0. Socorro: envia para todos os cuidadores do idoso.
-      if (/socorro|passando mal|emerg[êe]ncia|preciso de ajuda|me ajuda/.test(t)) {
+      if (
+        /socorro|s\.o\.s|estou passando mal|passando mal|me sinto mal|estou mal|emergencia|urgente|preciso de ajuda|preciso de socorro|me ajuda|me ajude|chama alguem|nao estou bem/.test(
+          t
+        )
+      ) {
         if (me?.tipoUsuario !== 'Idoso') {
           dizer('Este comando é para idosos.');
           return;
@@ -42,8 +45,34 @@ export function useVoiceCommands() {
         return;
       }
 
+      // 0.1 Mandar mensagem para uma pessoa específica.
+      //    Ex.: "mandar mensagem para Maria", "avisa a Maria", "manda pro João dizendo que estou com fome".
+      const matchMsg = t.match(
+        /(?:mandar|manda|enviar|envia|avisa|avise|diz|diga)[^\n]*(?:mensagem|recado)?[^\n]*(?:para|pro|pra|a|ao)[ ]+([a-záàâãéêíóôõúç ]+?)(?:[ ]+(?:dizendo|que|diz|assim)[ ]+(.+))?$/
+      );
+      if (matchMsg && contatos.length > 0) {
+        const nomeFalado = matchMsg[1].trim();
+        const conteudo = matchMsg[2]?.trim();
+
+        // Casa o nome falado com um contato (ignorando acentos).
+        const alvo = contatos.find((c) => normalizar(c.nome) === normalizar(nomeFalado));
+        if (!alvo) {
+          dizer(`Não encontrei ${nomeFalado} na sua lista.`);
+          return;
+        }
+        const textoFinal = conteudo || 'Mensagem enviada por voz.';
+        dizer(`Enviando mensagem para ${alvo.nome}.`);
+        api(`/api/chat/${alvo.relId}/mensagens`, {
+          method: 'POST',
+          body: { conteudo: textoFinal },
+        })
+          .then(() => dizer('Mensagem enviada.'))
+          .catch(() => dizer('Não consegui enviar a mensagem.'));
+        return;
+      }
+
       // 1. Ler a tela
-      if (/l[eê][^ ]* (pra|para)? ?mim|ler (a )?tela|leia/.test(t)) {
+      if (/le pra mim|leia pra mim|ler a tela|leia a tela|le tudo|le isso|o que tem na tela|me le|leia|ler/.test(t)) {
         if (descricaoTela) {
           dizer(descricaoTela);
         } else {
@@ -53,7 +82,7 @@ export function useVoiceCommands() {
       }
 
       // 2. Ligar para o cuidador (só idoso com telefone conhecido)
-      if (/ligar|telefonar|chamar/.test(t)) {
+      if (/ligar|liga|telefonar|telefona|chamar|chama|discar|faz uma chamada|fazer uma chamada/.test(t)) {
         if (telefoneCuidador) {
           dizer('Abrindo o discador para ligar.');
           Linking.openURL(`tel:${telefoneCuidador}`).catch(() => {
@@ -66,7 +95,7 @@ export function useVoiceCommands() {
       }
 
       // 3. Remédios de hoje
-      if (/rem[ée]dio.*hoje|hoje.*rem[ée]dio|o que (eu )?tomo|o que tomar/.test(t)) {
+      if (/remedio.*hoje|hoje.*remedio|o que eu tomo|o que tomo|o que tomar|quais remedios|meus remedios|remedio agora|hora do remedio/.test(t)) {
         if (remediosHoje) {
           dizer(remediosHoje);
         } else {
@@ -75,23 +104,26 @@ export function useVoiceCommands() {
         return;
       }
 
-      // Navegação (comandos originais)
-      if (/remedio|remédio/.test(t)) {
+      // 4. Navegação
+      if (/remedio|medicamento|comprimido/.test(t)) {
         dizer('Abrindo remédios.');
         router.push('/remedios');
-      } else if (/sair|logout|encerrar/.test(t)) {
+      } else if (/sair|logout|encerrar|encerra|deslogar|fechar o app|sair do app/.test(t)) {
         dizer('Saindo.');
         logout();
       } else if (/paciente/.test(t) && me?.tipoUsuario === 'Cuidador') {
         dizer('Abrindo pacientes.');
         router.push('/pacientes');
-      } else if (/inicio|início|menu|home/.test(t)) {
+      } else if (/inicio|tela inicial|menu|home|voltar|comeco|principal/.test(t)) {
         dizer('Voltando ao início.');
         router.replace('/');
       } else {
         dizer('Comando não reconhecido.');
       }
     },
-    [router, me, logout, descricaoTela, telefoneCuidador, remediosHoje]
+    [router, me, logout, descricaoTela, telefoneCuidador, remediosHoje, contatos]
   );
 }
+
+// Re-export do tipo para conveniência (usado em telas que montam os contatos).
+export type { Contato };

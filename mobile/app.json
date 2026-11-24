@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "Nós",
+    "slug": "nos",
+    "version": "1.0.0",
+    "scheme": "nos",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.raynasilva.nos",
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Permitir que $(PRODUCT_NAME) use o reconhecimento de fala.",
+        "NSMicrophoneUsageDescription": "Permitir que $(PRODUCT_NAME) use o microfone para comandos de voz.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.raynasilva.nos",
+      "googleServicesFile": "./google-services.json",
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "backgroundColor": "#C62828",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-asset",
+      "expo-status-bar",
+      "expo-audio",
+      "expo-notifications",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Permitir que $(PRODUCT_NAME) use o microfone para comandos de voz.",
+          "speechRecognitionPermission": "Permitir que $(PRODUCT_NAME) use o reconhecimento de fala.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
+        }
+      ],
+      "expo-sqlite"
+    ],
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "c8a25b89-49d4-4eab-bd9c-ad7d97c957f7"
+      }
+    },
+    "owner": "rayana_silva"
+  }
+}

@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
 // Contato disponível para enviar mensagem por voz (cuidador ou paciente).
 export interface Contato {
@@ -25,20 +25,26 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [remediosHoje, setRemediosHoje] = useState('');
   const [contatos, setContatos] = useState<Contato[]>([]);
 
+  // Referência estável: os setters do useState são estáveis por garantia do
+  // React, então useCallback([]) mantém `registrar` o mesmo em todos os
+  // renders. Sem isso, qualquer useEffect que dependa de `registrar` entra em
+  // loop infinito (setState -> novo registrar -> efeito roda de novo).
+  const registrar = useCallback((patch: Partial<Omit<VoiceState, 'registrar'>>) => {
+    if (patch.descricaoTela !== undefined) setDescricaoTela(patch.descricaoTela);
+    if (patch.telefoneCuidador !== undefined) setTelefoneCuidador(patch.telefoneCuidador);
+    if (patch.remediosHoje !== undefined) setRemediosHoje(patch.remediosHoje);
+    if (patch.contatos !== undefined) setContatos(patch.contatos);
+  }, []);
+
   const value = useMemo<VoiceState>(
     () => ({
       descricaoTela,
       telefoneCuidador,
       remediosHoje,
       contatos,
-      registrar: (patch) => {
-        if (patch.descricaoTela !== undefined) setDescricaoTela(patch.descricaoTela);
-        if (patch.telefoneCuidador !== undefined) setTelefoneCuidador(patch.telefoneCuidador);
-        if (patch.remediosHoje !== undefined) setRemediosHoje(patch.remediosHoje);
-        if (patch.contatos !== undefined) setContatos(patch.contatos);
-      },
+      registrar,
     }),
-    [descricaoTela, telefoneCuidador, remediosHoje, contatos]
+    [descricaoTela, telefoneCuidador, remediosHoje, contatos, registrar]
   );
 
   return <VoiceContext.Provider value={value}>{children}</VoiceContext.Provider>;
